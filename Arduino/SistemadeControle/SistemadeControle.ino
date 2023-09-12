@@ -38,6 +38,31 @@ void setup() {
 
 }
 
+// analog data acquisition function
+void get_smaples() {
+  // clear sample array
+  for (uint16_t i = 0; i < n; i++)
+    _array[i]  = 0.0;
+  ADCSRA |= (1 << ADEN) | (1 << ADSC) ;  // enable ADC module and start converion (free running mode)
+  // ignore the first reading
+  while ( (ADCSRA & (1 << ADIF)) == 0 );  // wait for ADIF to be set (conversion complete)
+  ADCSRA = ADCSRA;  // reset ADIF flag bit
+  // fill samples array with 12-bit data (add another 2 bits using oversampling technique)
+  for (uint16_t i = 0; i < n; i++) {
+    for (uint16_t j = 0; j < 16; j++) {
+      while ( (ADCSRA & (1 << ADIF)) == 0 );  // wait for ADIF to be set (conversion complete)
+      ADCSRA |= (1 << ADIF);   // reset ADIF bit by writing 1 to it
+      _array[i] += ADCW;
+    }
+  }
+  ADCSRA &= ~((1 << ADEN) | (1 << ADSC)) ;  // stop conversion and disable ADC module, reset ADIF bit also
+  for (uint16_t i = 0; i < n; i++)
+    _array[i] /= 4.0;
+}
+
+
+
+
 // the loop routine runs over and over again forever:
 void loop() {
   // read the input on analog pin 0:
@@ -45,4 +70,42 @@ void loop() {
   // Convert the analog reading (which goes from 0 - 1023) to a voltage (0 - 5V):
   float voltage = sensorValue * (5.0 / 1023.0);
   Serial.println(voltage);
+
+
+  //corrente
+
+
+ // get digital representation of the internal bangap reference voltage
+  float bgref_voltage = 0;   // Arduino internal reference voltage variable
+  ADMUX |= (1 << MUX3) | (1 << MUX2) | (1 << MUX1);   // select internal bandgap refernce as input to ADC
+  get_smaples();    // get samples
+  for (uint16_t i = 0; i < n; i++)
+    bgref_voltage += _array[i] ;
+  bgref_voltage /= n;     // average value
+ 
+  // read ACS758 output voltage
+  float acs758_voltage = 0;   // ACS758 sensor output voltage variable
+  ADMUX &= ~( (1 << MUX3) | (1 << MUX2) ) ;   // select analog channel 2 (A2) as input to ADC
+  get_smaples();
+ 
+
+   float _offset = 0;
+
+   //média da corrente 
+    for (uint16_t i = 0; i < n; i++)  // caculate signal average value (dc offset)
+      _offset += _array[i];
+  _offset = _offset / n;
+
+  // corrente RMS 
+  _offset = dc_offset;  // the dc offset is the pre-calibrated one
+ 
+   // calculate signal RMS value (digital representation)
+   for (uint16_t i = 0; i < n; i++)
+     acs758_voltage += sq( _array[i] - _offset );
+   acs758_voltage = acs758_voltage / n;
+   acs758_voltage = sqrt(acs758_voltage);
+  
+
+
+  
 }
