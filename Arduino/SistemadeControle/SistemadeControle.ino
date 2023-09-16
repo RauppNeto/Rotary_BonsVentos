@@ -91,24 +91,31 @@ void loop() {
    float _offset = 0;
 
    //média da corrente 
-    for (uint16_t i = 0; i < n; i++)  // caculate signal average value (dc offset)
+    for (uint16_t i = 0; i < n; i++){ // caculate signal average value (dc offset)
       _offset += _array[i];
+//Serial.print("Corrente[");
+//Serial.print(i);
+//Serial.print("]:");
+//Serial.print(_array[i]);
+//Serial.println(",");
+}
   _offset = _offset / n;
    
-  Serial.print("CorrenteMedia:");
-  Serial.print(_offset);
-  Serial.print(",");
+  //Serial.print("CorrenteMedia:");
+  //Serial.print(_offset);
+  //Serial.println(",");
 
   // corrente RMS 
   _offset = dc_offset;  // the dc offset is the pre-calibrated one
  
    // calculate signal RMS value (digital representation)
    for (uint16_t i = 0; i < n; i++)
-     acs758_voltage += sq( _array[i] - _offset );
+     + += sq( _array[i] - _offset );
    acs758_voltage = acs758_voltage / n;
    acs758_voltage = sqrt(acs758_voltage);
-  Serial.print("CorrenteRMS:");
-  Serial.println(acs758_voltage);
+ Serial.print("CorrenteRMS:");
+Serial.println(acs758_voltage);
+//Serial.println("-----Fim-----");
 
 
   
